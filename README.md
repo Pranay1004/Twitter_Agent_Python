@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DroneAgent - AI Twitter Automation
 
 A powerful, AI-driven tool for creating and scheduling drone-related content for Twitter.
@@ -75,3 +76,7 @@ If the application fails to connect to APIs:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+=======
+# Twitter_Agent_Python
+Twitter_Agent_Python
+>>>>>>> 1c9685cf270f3b51b2714afbe388c69574dfdccc
