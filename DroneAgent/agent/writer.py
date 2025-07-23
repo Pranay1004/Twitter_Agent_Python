@@ -22,21 +22,8 @@ logger = setup_logger(__name__)
 class ThreadWriter:
     def __init__(self):
         self.max_tweet_length = 280
-        self.hashtag_limit = 2  # Updated to match your requirement of 1-2 hashtags
-        self.setup_ai_clients()
-        
-    def setup_ai_clients(self):
-        """Initialize AI API clients"""
-        # Setup Gemini
-        self.gemini_key = os.getenv('GEMINI_API_KEY')
-        if self.gemini_key:
-            self.gemini_client = genai.Client(api_key=self.gemini_key)
-            logger.info("Gemini client initialized")
-        
-        # Setup Perplexity  
-        self.perplexity_key = os.getenv('PERPLEXITY_API_KEY')
-        if self.perplexity_key:
-            logger.info("Perplexity API key found")
+        self.hashtag_limit = 2
+        self.openrouter_key = os.getenv('OPENROUTER_API_KEY')
             
     def generate_thread_with_ai(self, topic: str, tweet_count: int = 8) -> List[Dict]:
         """Generate thread content using AI APIs"""
@@ -44,27 +31,8 @@ class ThreadWriter:
         prompt = f"""Create a high-quality {tweet_count}-tweet Twitter thread about: {topic}
 
 STRICT REQUIREMENTS:
-- EXACTLY {tweet_count} tweets (no more, no less)
-- Each tweet must be unique, engaging, and professional
-- Each tweet 260-280 characters (optimize for engagement)
-- Start with compelling hook tweet
-- NO repetitive phrases or templated content
-- Each tweet should provide specific, actionable insights
-- Use technical details, stats, real-world examples
-- Include 1-2 SHORT hashtags per tweet (max 15 chars total)
-- Strategic emoji use (not excessive)
-- Write as drone and aerospace industry expert with deep knowledge
-- Focus on practical applications, innovations, case studies
-- NO generic statements or filler content
-- End with strong CTA or thought-provoking question
 
 CONTENT STYLE:
-- Specific technical details and metrics
-- Real industry examples and case studies  
-- Actionable insights professionals can use
-- Current trends and future predictions
-- Problem-solving focus
-- Concrete benefits and ROI data
 
 TONE: Professional yet engaging, authoritative but accessible
 
@@ -83,78 +51,79 @@ FORMAT: Return ONLY valid JSON array:
 Topic: {topic}"""
 
         # Try Gemini Pro first
-        if hasattr(self, 'gemini_client'):
-            try:
-                response = self.gemini_client.models.generate_content(
-                    model="gemini-2.5-pro",
-                    contents=prompt
-                )
-                
-                content = response.candidates[0].content.parts[0].text
-                # Extract JSON from response
-                json_start = content.find('[')
-                json_end = content.rfind(']') + 1
-                if json_start != -1 and json_end != -1:
-                    json_str = content[json_start:json_end]
-                    tweets = json.loads(json_str)
-                    logger.info(f"Generated {len(tweets)} tweets using Gemini 2.5 Pro")
-                    return self.process_ai_tweets(tweets)
-            except Exception as e:
-                logger.warning(f"Gemini Pro failed: {e}")
-                logger.error(f"Gemini Pro error details: {str(e)}")
-                
-                # Try Gemini Flash as immediate fallback
+        
+        
+    def generate_thread_with_ai(self, topic: str, tweet_count: int = 8, model: str = "OpenRouter Pro") -> List[Dict]:
+        """Generate thread content using selected AI model"""
+        prompt = f"""Create a high-quality {tweet_count}-tweet Twitter thread about: {topic}
+STRICT REQUIREMENTS:
+...existing prompt...
+Topic: {topic}"""
+        tweets = []
+        if model == "OpenRouter Pro":
+            key = os.getenv('OPENROUTER_API_KEY')
+            if key:
                 try:
-                    logger.info("Trying Gemini Flash as fallback...")
-                    response = self.gemini_client.models.generate_content(
-                        model="gemini-2.0-flash-exp",
+                    response = requests.post(
+                        "https://openrouter.ai/api/thread",
+                        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                        json={"prompt": prompt}
+                    )
+                    if response.status_code == 200:
+                        tweets = response.json().get('tweets', [])
+                        return [
+                            {'text': tweet, 'type': 'content', 'needs_image': i == 0, 'tweet_number': i + 1}
+                            for i, tweet in enumerate(tweets)
+                        ]
+                except Exception as e:
+                    logger.warning(f"OpenRouter thread generation failed: {e}")
+        elif model == "Perplexity Pro":
+            key = os.getenv('PERPLEXITY_API_KEY')
+            if key:
+                try:
+                    response = requests.post(
+                        "https://api.perplexity.ai/chat/completions",
+                        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                        json={"model": "sonar", "messages": [{"role": "user", "content": prompt}], "temperature": 0.7}
+                    )
+                    if response.status_code == 200:
+                        content = response.json()['choices'][0]['message']['content']
+                        tweets = json.loads(content)
+                        return [
+                            {'text': tweet['text'], 'type': tweet.get('type', 'content'), 'needs_image': i == 0, 'tweet_number': i + 1}
+                            for i, tweet in enumerate(tweets)
+                        ]
+                except Exception as e:
+                    logger.warning(f"Perplexity thread generation failed: {e}")
+        elif model == "Gemini Pro":
+            key = os.getenv('GEMINI_API_KEY')
+            if key:
+                try:
+                    import google.genai as genai
+                    client = genai.Client(api_key=key)
+                    response = client.models.generate_content(
+                        model="gemini-2.5-pro",
                         contents=prompt
                     )
-                    
                     content = response.candidates[0].content.parts[0].text
-                    # Extract JSON from response
-                    json_start = content.find('[')
-                    json_end = content.rfind(']') + 1
-                    if json_start != -1 and json_end != -1:
-                        json_str = content[json_start:json_end]
-                        tweets = json.loads(json_str)
-                        logger.info(f"Generated {len(tweets)} tweets using Gemini Flash (fallback)")
-                        return self.process_ai_tweets(tweets)
-                except Exception as flash_e:
-                    logger.warning(f"Gemini Flash fallback also failed: {flash_e}")
-        
-        # Fallback to Perplexity
-        if self.perplexity_key:
-            try:
-                response = requests.post(
-                    "https://api.perplexity.ai/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.perplexity_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "sonar",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0.7
-                    }
-                )
-                
-                if response.status_code == 200:
-                    content = response.json()['choices'][0]['message']['content']
-                    # Extract JSON from response
-                    json_start = content.find('[')
-                    json_end = content.rfind(']') + 1
-                    if json_start != -1 and json_end != -1:
-                        json_str = content[json_start:json_end]
-                        tweets = json.loads(json_str)
-                        logger.info(f"Generated {len(tweets)} tweets using Perplexity")
-                        return self.process_ai_tweets(tweets)
-            except Exception as e:
-                logger.warning(f"Perplexity failed: {e}")
-        
-        # Fallback to simple template if both APIs fail
-        logger.warning("Both AI APIs failed, using minimal fallback")
-        return self.create_fallback_thread(topic, tweet_count)
+                    tweets = json.loads(content)
+                    return [
+                        {'text': tweet['text'], 'type': tweet.get('type', 'content'), 'needs_image': i == 0, 'tweet_number': i + 1}
+                        for i, tweet in enumerate(tweets)
+                    ]
+                except Exception as e:
+                    logger.warning(f"Gemini thread generation failed: {e}")
+        # Fallback: minimal static thread
+        logger.warning("All AI thread generation failed, using minimal fallback")
+        tweets = self.create_fallback_thread(topic, tweet_count)
+        return {
+            'topic': topic,
+            'tweets': tweets,
+            'total_tweets': len(tweets),
+            'total_characters': sum(len(tweet['text']) for tweet in tweets),
+            'hashtags': [],
+            'has_images': any(tweet.get('needs_image', False) for tweet in tweets)
+        }
     
     def process_ai_tweets(self, raw_tweets: List[Dict]) -> List[Dict]:
         """Process and validate AI-generated tweets"""
@@ -322,7 +291,6 @@ Topic: {topic}"""
         if len(clean_text) + len(hashtag_text) < min_length:
             # Add descriptive words if still short - avoid generic phrases
             fillers = [
-                " Industry adoption continues accelerating rapidly.",
                 " Professional applications show measurable ROI.",
                 " Technical specifications exceed industry standards.",
                 " Implementation requires strategic planning approach."

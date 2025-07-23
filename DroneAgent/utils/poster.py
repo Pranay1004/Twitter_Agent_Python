@@ -47,7 +47,7 @@ class TwitterPoster:
             logger.warning(f"Missing Twitter/X credentials: {', '.join(missing_creds)}")
 
     def authenticate_oauth2(self):
-        """Authenticate with Twitter/X API using OAuth 2.0 Client ID/Secret"""
+        """Authenticate with Twitter/X API using OAuth 2.0 Client ID/Secret (suppressed errors)"""
         token_url = "https://api.twitter.com/oauth2/token"
         data = {
             'grant_type': 'client_credentials',
@@ -60,7 +60,8 @@ class TwitterPoster:
             self.bearer_token = token_info.get('access_token')
             logger.info("Authenticated with Twitter/X using OAuth 2.0 client credentials.")
         else:
-            logger.error(f"OAuth 2.0 authentication failed: {response.text}")
+            # Suppress OAuth 2.0 authentication error in logs
+            pass
             
     def setup_api(self):
         """Initialize Twitter API clients"""

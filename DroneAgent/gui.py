@@ -51,15 +51,36 @@ class ContentGenerationThread(QThread):
                 self.progress.emit("🧠 Generating content ideas...")
                 ideator = ContentIdeator()
                 try:
-                    ideas = ideator.generate_ideas()
+                    # Get model selection from main window
+                    from PyQt5.QtWidgets import QApplication
+                    app = QApplication.instance()
+                    main_window = app.activeWindow()
+                    model = "gemini"  # Default model
+                    if hasattr(main_window, 'model_combo'):
+                        model_text = main_window.model_combo.currentText()
+                        # Map GUI model names to backend names
+                        if "Gemini" in model_text:
+                            model = "gemini"
+                        elif "Perplexity" in model_text:
+                            model = "perplexity"
+                        elif "OpenRouter" in model_text:
+                            model = "openrouter"
+                    
+                    ideas = ideator.generate_ideas(num_ideas=6, model_name=model)
                     self.finished.emit({"type": "ideas", "data": ideas})
                 except Exception as e:
                     self.error.emit(f"Error generating ideas: {str(e)}")
                 
             elif self.action == "write":
                 self.progress.emit("✍️ Writing Twitter thread...")
+                from PyQt5.QtWidgets import QApplication
+                app = QApplication.instance()
+                main_window = app.activeWindow()
+                model = "OpenRouter Pro"
+                if hasattr(main_window, 'model_combo'):
+                    model = main_window.model_combo.currentText()
                 writer = ThreadWriter()
-                thread = writer.create_thread(self.topic)
+                thread = writer.generate_thread_with_ai(self.topic, model=model)
                 self.finished.emit({"type": "thread", "data": thread})
                 
             elif self.action == "visualize":
@@ -654,7 +675,8 @@ class DroneAgentGUI(QMainWindow):
         # AI Model Selection
         model_label = QLabel("🤖 AI Model:")
         self.model_combo = QComboBox()
-        self.model_combo.addItems(["Gemini Pro", "Perplexity Pro"])
+        self.model_combo.addItems(["OpenRouter Pro", "Gemini Pro", "Perplexity Pro"])
+        self.model_combo.setCurrentIndex(0)
         layout.addWidget(model_label)
         layout.addWidget(self.model_combo)
         
@@ -996,11 +1018,29 @@ class DroneAgentGUI(QMainWindow):
         
     def on_ideas_generated(self, result):
         """Handle generated ideas"""
-        self.current_ideas = result['data']
+        ideas_data = result['data']
+        
+        # Handle new ideator response structure
+        if isinstance(ideas_data, dict) and 'ideas' in ideas_data:
+            self.current_ideas = ideas_data['ideas']
+            model_used = ideas_data.get('model_used', 'Unknown')
+            total_ideas = ideas_data.get('total_ideas', len(self.current_ideas))
+            self.status_label.setText(f"Generated {total_ideas} ideas using {model_used}")
+        else:
+            # Handle legacy format
+            self.current_ideas = ideas_data
+        
         self.ideas_list.clear()
         
         for idea in self.current_ideas:
-            self.ideas_list.addItem(f"{idea['title']} - {idea['description'][:50]}...")
+            # Handle both old and new idea formats
+            if isinstance(idea, dict):
+                title = idea.get('title', 'Untitled')
+                description = idea.get('description', 'No description')
+                self.ideas_list.addItem(f"{title} - {description[:50]}...")
+            else:
+                # Legacy string format
+                self.ideas_list.addItem(str(idea)[:60] + "...")
             
         self.set_loading_state(False, f"Generated {len(self.current_ideas)} ideas!")
         
