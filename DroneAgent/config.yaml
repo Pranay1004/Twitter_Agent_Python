@@ -1,0 +1,37 @@
+app:
+  name: "DroneAgent"
+  version: "1.0.0"
+  debug: false
+
+scheduling:
+  timezone: "Asia/Kolkata"
+  post_times:
+    - "10:00"  # 10am IST (targets US evening)
+    - "19:00"  # 7pm IST (targets US morning/EU evening)
+  
+ai_models:
+  preferred: "perplexity"  # perplexity, gemini, openai, anthropic
+  fallback: "gemini"
+  
+content:
+  max_thread_length: 10
+  hashtags_per_post: 3
+  include_promotional: true
+  promotional_frequency: 7  # Every 7 posts
+  
+images:
+  preferred_source: "unsplash"  # unsplash, pexels, generated
+  include_credits: true
+  alt_text: true
+  
+posting:
+  auto_post: false
+  dry_run: true
+  
+urls:
+  gumroad_link: "https://cryomech01.gumroad.com"
+  shorten_urls: true
+
+logging:
+  level: "INFO"
+  save_history: true

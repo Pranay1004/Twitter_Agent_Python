@@ -1,0 +1,17 @@
+# logs/
+# __pycache__/
+# *.pyc
+# *.pyo
+# *.pyd
+# .Python
+# data/images/*.jpg
+# data/images/*.png
+# !data/images/.gitkeep
+# .env
+# *.log
+# .vscode/
+# .idea/
+# .DS_Store
+# Thumbs.db
+google-credentials.json
+.env

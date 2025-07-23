@@ -1,0 +1,27 @@
+# DroneAgent Scheduler Configuration
+schedule:
+  enabled: false
+  daily_posts: 2
+  times:
+    - "10:00"  # 10 AM IST
+    - "19:00"  # 7 PM IST
+  timezone: "Asia/Kolkata"
+  
+content:
+  themes:
+    - "Drone Technology Updates"
+    - "FPV Flying Tips"
+    - "Cinematography Techniques"
+    - "Commercial Applications"
+    - "DIY Drone Building"
+    - "DIY Raspberry Pi IOT Solution Building"
+    - "Drone Racing Events"
+    - "Drone Photography Tips"
+    - "Drone Swarm Innovations"
+    - "Unmanned Aerial Systems (UAS) Regulations"
+
+    
+posting:
+  auto_hashtags: true
+  engagement_tracking: true
+  analytics_enabled: true
