@@ -1,0 +1,5 @@
+Starting application from D:\OneDrive - Amity University\Desktop\Twitter Auto\DroneAgent
+Python version: 3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
+System path: ['D:\\OneDrive - Amity University\\Desktop\\Twitter Auto\\DroneAgent', 'D:\\OneDrive - Amity University\\Desktop\\Twitter Auto\\DroneAgent', 'C:\\Python313\\python313.zip', 'C:\\Python313\\DLLs', 'C:\\Python313\\Lib', 'C:\\Python313', 'C:\\Users\\OPTIMUS-G15\\AppData\\Roaming\\Python\\Python313\\site-packages', 'C:\\Python313\\Lib\\site-packages']
+
+Successfully imported twitter_agent
